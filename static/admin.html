@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Clipla-y · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Cabinet+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07070d;--sf:#0f0f1a;--sf2:#161625;--bd:rgba(255,255,255,0.07);
+  --tx:#f0eefc;--mu:#5a5870;--pr:#ff5f3d;--se:#7c5cfc;--ac:#00e5bc;
+  --ye:#ffcc00;--re:#ff4466;
+  --fd:'Syne',sans-serif;--fb:'Cabinet Grotesk',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+
+/* ── NOISE OVERLAY ── */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:var(--sf);border-right:1px solid var(--bd);padding:28px 20px;display:flex;flex-direction:column;z-index:100}
+.logo{font-family:var(--fd);font-size:1.2rem;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.logo-dot{width:8px;height:8px;background:var(--pr);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6);opacity:.5}}
+.logo-badge{font-size:.6rem;font-weight:800;letter-spacing:.08em;color:var(--pr);background:rgba(255,95,61,.12);border:1px solid rgba(255,95,61,.2);padding:2px 7px;border-radius:999px;margin-left:4px}
+.sidebar-label{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mu);margin:24px 0 8px 8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:.83rem;font-weight:700;color:var(--mu);cursor:pointer;transition:all .2s;text-decoration:none}
+.nav-item:hover{background:var(--sf2);color:var(--tx)}
+.nav-item.active{background:rgba(255,95,61,.1);color:var(--pr);border:1px solid rgba(255,95,61,.15)}
+.nav-icon{font-size:1rem;width:20px;text-align:center}
+.sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid var(--bd)}
+.refresh-btn{width:100%;padding:10px;background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:10px;color:var(--se);font-family:var(--fb);font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.refresh-btn:hover{background:rgba(124,92,252,.2)}
+
+/* ── MAIN ── */
+.main{margin-left:220px;padding:36px 36px 60px;position:relative;z-index:1}
+.toprow{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px}
+.page-title{font-family:var(--fd);font-size:2rem;font-weight:800;letter-spacing:-.04em;line-height:1.1}
+.page-title span{background:linear-gradient(135deg,var(--pr),var(--se));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.last-update{font-size:.75rem;color:var(--mu);margin-top:6px}
+.pw-form{display:flex;gap:8px;align-items:center}
+.pw-input{background:var(--sf);border:1.5px solid var(--bd);border-radius:10px;padding:9px 14px;color:var(--tx);font-family:var(--fb);font-size:.83rem;outline:none;transition:border-color .2s;width:160px}
+.pw-input:focus{border-color:var(--pr)}
+.pw-btn{padding:9px 18px;background:var(--pr);color:#fff;border:none;border-radius:10px;font-family:var(--fb);font-weight:800;font-size:.83rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.pw-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,95,61,.3)}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--sf);border:1px solid var(--bd);border-radius:18px;padding:22px 22px 20px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
+.stat-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.12)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:18px 18px 0 0}
+.stat-card.orange::before{background:linear-gradient(90deg,var(--pr),#ff8c5a)}
+.stat-card.purple::before{background:linear-gradient(90deg,var(--se),#a07aff)}
+.stat-card.green::before{background:linear-gradient(90deg,var(--ac),#00b896)}
+.stat-card.yellow::before{background:linear-gradient(90deg,var(--ye),#ffaa00)}
+.stat-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;filter:blur(30px);opacity:.15}
+.orange .stat-glow{background:var(--pr)}
+.purple .stat-glow{background:var(--se)}
+.green .stat-glow{background:var(--ac)}
+.yellow .stat-glow{background:var(--ye)}
+.stat-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:10px}
+.stat-value{font-family:var(--fd);font-size:2.4rem;font-weight:800;line-height:1;margin-bottom:5px}
+.orange .stat-value{color:var(--pr)}
+.purple .stat-value{color:var(--se)}
+.green .stat-value{color:var(--ac)}
+.yellow .stat-value{color:var(--ye)}
+.stat-sub{font-size:.75rem;color:var(--mu)}
+
+/* ── BOTTOM GRID ── */
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:18px;padding:24px}
+.card-title{font-family:var(--fd);font-size:.95rem;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.card-title .icon{font-size:1.1rem}
+
+/* ── PLATFORM BARS ── */
+.plat-row{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.plat-name{font-size:.8rem;font-weight:700;width:70px;flex-shrink:0}
+.plat-bar-wrap{flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden}
+.plat-bar{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.plat-count{font-family:var(--fd);font-size:.85rem;font-weight:800;width:28px;text-align:right}
+
+/* ── FEEDBACK ── */
+.feedback-wrap{display:flex;gap:14px;margin-bottom:20px}
+.fb-block{flex:1;background:var(--sf2);border-radius:14px;padding:18px;text-align:center}
+.fb-emoji{font-size:2rem;margin-bottom:8px}
+.fb-num{font-family:var(--fd);font-size:2rem;font-weight:800}
+.fb-label{font-size:.72rem;color:var(--mu);font-weight:700;margin-top:3px}
+.satisfaction-bar-wrap{height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden;margin-bottom:8px}
+.satisfaction-bar{height:100%;background:linear-gradient(90deg,var(--ac),#00b896);border-radius:5px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.satisfaction-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mu);font-weight:600}
+
+/* ── ACTIVITY ── */
+.activity-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.activity-text{font-size:.82rem;flex:1}
+.activity-time{font-size:.72rem;color:var(--mu)}
+
+/* ── CONVERSION ── */
+.conv-wrap{display:flex;flex-direction:column;gap:10px}
+.conv-row{display:flex;align-items:center;justify-content:space-between}
+.conv-label{font-size:.8rem;color:var(--mu);font-weight:600}
+.conv-funnel{flex:1;margin:0 12px;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.conv-fill{height:100%;border-radius:3px}
+.conv-pct{font-family:var(--fd);font-size:.85rem;font-weight:800;width:36px;text-align:right}
+
+/* ── LOADING / EMPTY ── */
+.loading{text-align:center;padding:80px 20px;color:var(--mu)}
+.loading .sp{width:36px;height:36px;border:3px solid rgba(255,255,255,.06);border-top-color:var(--pr);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:rgba(255,68,102,.07);border:1px solid rgba(255,68,102,.2);border-radius:12px;padding:14px 18px;color:var(--re);font-size:.85rem;margin-top:20px}
+
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:20px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .bottom-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <span class="logo-dot"></span>Clipla-y
+    <span class="logo-badge">ADMIN</span>
+  </div>
+  <div class="sidebar-label">Panel</div>
+  <a class="nav-item active" href="#">
+    <span class="nav-icon">📊</span> Dashboard
+  </a>
+  <a class="nav-item" href="/" target="_blank">
+    <span class="nav-icon">🎬</span> Uygulamayı Aç
+  </a>
+  <div class="sidebar-footer">
+    <button class="refresh-btn" onclick="loadStats()">
+      <span>↻</span> Yenile
+    </button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="toprow">
+    <div>
+      <div class="page-title">Beta <span>İstatistikleri</span></div>
+      <div class="last-update" id="last-update">Yükleniyor...</div>
+    </div>
+    <div class="pw-form">
+      <input class="pw-input" type="password" id="pw-input" placeholder="Admin şifresi" value="clipla2026"/>
+      <button class="pw-btn" onclick="loadStats()">Getir</button>
+    </div>
+  </div>
+
+  <div id="content">
+    <div class="loading"><div class="sp"></div>Veriler yükleniyor...</div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+async function loadStats() {
+  const pw = document.getElementById('pw-input').value.trim();
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="sp"></div>Veriler yükleniyor...</div>';
+
+  try {
+    const r = await fetch(`${API}/api/beta/stats?pw=${encodeURIComponent(pw)}`);
+    if (!r.ok) throw new Error('Şifre hatalı veya sunucu hatası (' + r.status + ')');
+    const d = await r.json();
+    render(d);
+    document.getElementById('last-update').textContent = 'Son güncelleme: ' + new Date().toLocaleTimeString('tr-TR');
+  } catch (e) {
+    document.getElementById('content').innerHTML = `<div class="error-msg">⚠️ ${e.message}</div>`;
+  }
+}
+
+function render(d) {
+  const fb = d.feedback || {};
+  const platforms = d.platforms || {};
+  const maxPlat = Math.max(...Object.values(platforms), 1);
+  const platColors = { youtube: '#ff0000', youtube_shorts: '#7c5cfc', tiktok: '#69C9D0', unknown: '#5a5870', bilinmeyen: '#5a5870' };
+  const platNames = { youtube: 'YouTube', youtube_shorts: 'Shorts', tiktok: 'TikTok', unknown: 'Diğer', bilinmeyen: 'Diğer' };
+
+  const convRate = d.uploads > 0 ? Math.round(d.renders / d.uploads * 100) : 0;
+  const sessionToUpload = d.sessions > 0 ? Math.round(d.uploads / d.sessions * 100) : 0;
+
+  const platRows = Object.entries(platforms).map(([k, v]) => `
+    <div class="plat-row">
+      <div class="plat-name" style="color:${platColors[k]||'var(--mu)'}">${platNames[k]||k}</div>
+      <div class="plat-bar-wrap"><div class="plat-bar" style="width:${Math.round(v/maxPlat*100)}%;background:${platColors[k]||'var(--pr)'}"></div></div>
+      <div class="plat-count" style="color:${platColors[k]||'var(--mu)'}">${v}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card orange">
+        <div class="stat-glow"></div>
+        <div class="stat-label">Toplam Oturum</div>
+        <div class="stat-value">${d.sessions || 0}</div>
+        <div class="stat-sub">${d.unique_users || 0} benzersiz kullanıcı</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-glow"></div>
+        <div class="stat-label">Video Yükleme</div>
+        <div class="stat-value">${d.uploads || 0}</div>
+        <div class="stat-sub">toplam yükleme</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-glow"></div>
+        <div class="stat-label">Render</div>
+        <div class="stat-value">${d.renders || 0}</div>
+        <div class="stat-sub">tamamlanan edit</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-glow"></div>
+        <div class="stat-label">Memnuniyet</div>
+        <div class="stat-value">${fb.satisfaction_pct || 0}%</div>
+        <div class="stat-sub">${fb.total || 0} geri bildirim</div>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-title"><span class="icon">🎯</span> Platform Dağılımı</div>
+        ${platRows || '<div style="color:var(--mu);font-size:.82rem">Henüz veri yok</div>'}
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">💬</span> Geri Bildirim</div>
+        <div class="feedback-wrap">
+          <div class="fb-block">
+            <div class="fb-emoji">👍</div>
+            <div class="fb-num" style="color:var(--ac)">${fb.up || 0}</div>
+            <div class="fb-label">Beğendi</div>
+          </div>
+          <div class="fb-block">
+            <div class="fb-emoji">👎</div>
+            <div class="fb-num" style="color:var(--re)">${fb.down || 0}</div>
+            <div class="fb-label">Beğenmedi</div>
+          </div>
+        </div>
+        <div class="satisfaction-bar-wrap">
+          <div class="satisfaction-bar" style="width:${fb.satisfaction_pct || 0}%"></div>
+        </div>
+        <div class="satisfaction-label">
+          <span>Memnuniyet oranı</span>
+          <span style="color:var(--ac);font-family:var(--fd)">${fb.satisfaction_pct || 0}%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🔄</span> Dönüşüm Hunisi</div>
+        <div class="conv-wrap">
+          <div class="conv-row">
+            <div class="conv-label">Ziyaret → Yükleme</div>
+            <div class="conv-funnel"><div class="conv-fill" style="width:${sessionToUpload}%;background:var(--pr)"></div></div>
+            <div class="conv-pct" style="color:var(--pr)">${sessionToUpload}%</div>
+          </div>
+          <div class="conv-row">
+            <div class="conv-label">Yükleme → Render</div>
+            <div class="conv-funnel"><div class="conv-fill" style="width:${convRate}%;background:var(--ac)"></div></div>
+            <div class="conv-pct" style="color:var(--ac)">${convRate}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">📈</span> Özet</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${[
+            ['Toplam Oturum', d.sessions||0, 'var(--pr)'],
+            ['Benzersiz Kullanıcı', d.unique_users||0, 'var(--se)'],
+            ['Video Yükleme', d.uploads||0, 'var(--ye)'],
+            ['Tamamlanan Render', d.renders||0, 'var(--ac)'],
+            ['Toplam Geri Bildirim', fb.total||0, 'var(--mu)'],
+          ].map(([label, val, color]) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">
+              <span style="font-size:.82rem;color:var(--mu)">${label}</span>
+              <span style="font-family:var(--fd);font-weight:800;font-size:1rem;color:${color}">${val}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Sayfa açılınca otomatik yükle
+loadStats();
+// Her 60 saniyede bir otomatik yenile
+setInterval(loadStats, 60000);
+</script>
+</body>
+</html>

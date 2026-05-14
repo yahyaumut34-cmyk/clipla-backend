@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Clipla — Edit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080c14;--surface:#0e1623;--card:#111827;
+  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
+  --txt:#e2eaf6;--muted:#4d6480;--accent:#e05c2a;
+  --green:#22c991;--yellow:#f0b429;--red:#f43f5e;
+  --mono:'Geist Mono',monospace;--serif:'Instrument Serif',Georgia,serif
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--mono);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 40% at 70% 20%,rgba(224,92,42,.06),transparent),
+             radial-gradient(ellipse 50% 50% at 20% 80%,rgba(34,201,145,.04),transparent)}
+
+.wrap{max-width:960px;margin:0 auto;padding:36px 20px}
+
+header{display:flex;align-items:baseline;gap:16px;margin-bottom:32px}
+.logo{font-family:var(--serif);font-size:28px;font-style:italic}
+.logo-sub{font-size:11px;color:var(--muted);letter-spacing:.08em}
+
+/* Card */
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:24px;margin-bottom:16px}
+.card-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:16px;height:1px;background:var(--muted)}
+
+/* Upload */
+.upload-zone{border:1px dashed rgba(255,255,255,.15);border-radius:8px;padding:36px 20px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(224,92,42,.04)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:28px;margin-bottom:10px}
+.upload-hint{font-size:13px;color:var(--muted)}
+.upload-hint b{color:var(--accent)}
+.file-chosen{font-size:12px;color:var(--green);margin-top:10px;display:none}
+.row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+
+/* Butonlar */
+.btn{padding:11px 20px;border-radius:8px;border:1px solid var(--bd2);background:rgba(255,255,255,.05);color:var(--txt);font-family:var(--mono);font-size:12px;letter-spacing:.04em;cursor:pointer;transition:all .18s;white-space:nowrap}
+.btn:hover:not(:disabled){background:rgba(255,255,255,.1)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-accent:hover:not(:disabled){background:#c94d1e}
+.btn-green{background:var(--green);border-color:var(--green);color:#061a12;font-weight:500}
+.job-info{font-size:11px;color:var(--muted)}
+
+/* ===================== CHAT ASISTANI ===================== */
+.chat-wrap{display:flex;flex-direction:column;gap:0}
+
+/* Mesaj baloncukları */
+.chat-messages{
+  min-height:120px;max-height:320px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;
+  margin-bottom:14px;padding:4px 0
+}
+.chat-msg{display:flex;gap:10px;align-items:flex-start}
+.chat-msg.user{flex-direction:row-reverse}
+.msg-avatar{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px
+}
+.msg-avatar.ai{background:rgba(224,92,42,.15);border:1px solid rgba(224,92,42,.3);color:var(--accent)}
+.msg-avatar.user{background:rgba(34,201,145,.1);border:1px solid rgba(34,201,145,.2);color:var(--green)}
+.msg-bubble{
+  max-width:80%;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6
+}
+.chat-msg.ai .msg-bubble{background:rgba(255,255,255,.05);border:1px solid var(--bd);color:var(--txt)}
+.chat-msg.user .msg-bubble{background:rgba(224,92,42,.12);border:1px solid rgba(224,92,42,.2);color:var(--txt)}
+
+/* Typing göstergesi */
+.typing{display:none;align-items:center;gap:6px;padding:8px 0}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:bounce .9s infinite}
+.typing-dot:nth-child(2){animation-delay:.15s}
+.typing-dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* Onay kutusu */
+.confirm-box{
+  display:none;padding:14px 16px;
+  background:rgba(34,201,145,.06);border:1px solid rgba(34,201,145,.2);
+  border-radius:8px;margin-bottom:12px
+}
+.confirm-box-title{font-size:11px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.confirm-params{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.7}
+.confirm-params b{color:var(--txt)}
+.confirm-btns{display:flex;gap:8px}
+
+/* Input satırı */
+.chat-input-row{display:flex;gap:8px;align-items:center}
+.chat-input-wrap{flex:1;position:relative}
+.chat-input-wrap input{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:8px;
+  padding:12px 44px 12px 14px;color:var(--txt);font-family:var(--mono);font-size:13px;outline:none;
+  transition:border-color .2s
+}
+.chat-input-wrap input:focus{border-color:rgba(224,92,42,.5)}
+.chat-input-wrap input::placeholder{color:var(--muted)}
+.mic-btn{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;padding:4px
+}
+.mic-btn.on{color:var(--red);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Platform seçici */
+.plats{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.plat{padding:5px 14px;border-radius:999px;border:1px solid var(--bd);background:none;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s}
+.plat.on{border-color:var(--accent);color:var(--accent);background:rgba(224,92,42,.1)}
+
+/* Progress */
+.prog-wrap{display:none;margin-top:14px}
+.prog-bar{height:2px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .35s}
+.prog-label{font-size:11px;color:var(--muted);margin-top:8px}
+
+/* Hata */
+.err{display:none;margin-top:12px;padding:12px 16px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:8px;font-size:13px;color:#fca5a5;line-height:1.6}
+
+/* Önizleme */
+#preview{display:none}
+.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.preview-grid{grid-template-columns:1fr}}
+.preview-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.video-box{width:100%;border-radius:8px;overflow:hidden;background:#000;aspect-ratio:9/16}
+.video-box.landscape{aspect-ratio:16/9}
+.video-box video{width:100%;height:100%;object-fit:contain}
+
+/* İndir */
+.dl-bar{display:none;align-items:center;gap:14px;padding:16px 20px;background:rgba(34,201,145,.06);border:1px solid rgba(34,201,145,.15);border-radius:10px;margin-bottom:16px}
+.dl-info{flex:1}
+.dl-title{font-size:13px;color:var(--green);margin-bottom:3px}
+.dl-meta{font-size:11px;color:var(--muted)}
+
+/* Analiz */
+.analysis{display:none}
+.hook-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:11px;margin-bottom:12px}
+.hook-strong{background:rgba(34,201,145,.12);color:var(--green);border:1px solid rgba(34,201,145,.25)}
+.hook-medium{background:rgba(240,180,41,.12);color:var(--yellow);border:1px solid rgba(240,180,41,.25)}
+.hook-weak{background:rgba(244,63,94,.12);color:var(--red);border:1px solid rgba(244,63,94,.25)}
+.summary{font-size:13px;line-height:1.75;margin-bottom:14px}
+.suggestions{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.sug{padding:10px 14px;background:rgba(255,255,255,.03);border-left:2px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;color:rgba(226,234,246,.8);line-height:1.6}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.metric-card{background:var(--surface);border:1px solid var(--bd);border-radius:10px;padding:16px 18px}
+.metric-card h5{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.metric-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.metric-row:last-child{border-bottom:none}
+.metric-row span:first-child{color:var(--muted)}
+.g{color:var(--green)}.y{color:var(--yellow)}.r{color:var(--red)}.b{color:#60a5fa}
+.transcript{margin-top:12px;padding:12px 14px;background:rgba(0,0,0,.25);border:1px solid var(--bd);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.75;max-height:100px;overflow-y:auto;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">Clipla</div>
+    <div class="logo-sub">AI Video Editor · Beta</div>
+  </header>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-title">Video Yükle</div>
+    <div class="upload-zone" id="zone">
+      <input type="file" id="fileIn" accept="video/*"/>
+      <div class="upload-icon">📁</div>
+      <div class="upload-hint">Tıkla veya sürükle · <b>MP4, MOV, WebM</b></div>
+      <div class="file-chosen" id="fileName"></div>
+    </div>
+    <div class="row">
+      <button class="btn btn-accent" id="btnUp" disabled>Yükle</button>
+      <span class="job-info" id="jobInfo"></span>
+    </div>
+  </div>
+
+  <!-- Chat Asistanı -->
+  <div class="card" id="chatCard">
+    <div class="card-title">Ne Yapmamı İstiyorsun?</div>
+    <div class="chat-wrap">
+
+      <!-- Mesajlar -->
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg ai">
+          <div class="msg-avatar ai">C</div>
+          <div class="msg-bubble">Merhaba! Video yüklendikten sonra ne yapmamı istediğini söyle. Örneğin: "60 saniyelik Shorts yap" veya "sessizlikleri temizle, tempoyu artır"</div>
+        </div>
+      </div>
+
+      <!-- Typing göstergesi -->
+      <div class="typing" id="typing">
+        <div class="msg-avatar ai" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:rgba(224,92,42,.15);border:1px solid rgba(224,92,42,.3);color:var(--accent)">C</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+
+      <!-- Onay kutusu -->
+      <div class="confirm-box" id="confirmBox">
+        <div class="confirm-box-title">✓ Edit Planı Hazır</div>
+        <div class="confirm-params" id="confirmParams"></div>
+        <div class="confirm-btns">
+          <button class="btn btn-green" id="btnConfirm">Evet, Başla →</button>
+          <button class="btn" id="btnCancel">Değiştir</button>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-row">
+        <div class="chat-input-wrap">
+          <input type="text" id="chatInput" placeholder="Ne yapmamı istiyorsun?" disabled/>
+          <button class="mic-btn" id="btnMic">🎙</button>
+        </div>
+        <button class="btn btn-accent" id="btnSend" disabled>Gönder</button>
+      </div>
+
+      <!-- Platform -->
+      <div class="plats">
+        <button class="plat on" data-p="youtube_shorts">Shorts</button>
+        <button class="plat" data-p="tiktok">TikTok</button>
+        <button class="plat" data-p="youtube">YouTube</button>
+      </div>
+
+    </div>
+
+    <!-- Progress -->
+    <div class="prog-wrap" id="progWrap">
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-label" id="progLabel">İşleniyor…</div>
+    </div>
+    <div class="err" id="errBox"></div>
+  </div>
+
+  <!-- İndir -->
+  <div class="dl-bar" id="dlBar">
+    <div class="dl-info">
+      <div class="dl-title">✓ Video hazır</div>
+      <div class="dl-meta" id="dlMeta"></div>
+    </div>
+    <a class="btn btn-green" id="dlLink" href="#" download>MP4 İndir</a>
+  </div>
+
+  <!-- Önizleme -->
+  <div id="preview">
+    <div class="card">
+      <div class="card-title">Önizleme</div>
+      <div class="preview-grid">
+        <div>
+          <div class="preview-label">Orijinal</div>
+          <div class="video-box" id="origBox"><video id="origVid" controls></video></div>
+        </div>
+        <div>
+          <div class="preview-label">Kurgulanan</div>
+          <div class="video-box" id="editBox"><video id="editVid" controls></video></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analiz -->
+  <div class="card analysis" id="analysisCard">
+    <div class="card-title">Claude Analizi</div>
+    <div id="hookBadge"></div>
+    <div class="summary" id="summaryTxt"></div>
+    <div class="suggestions" id="sugList"></div>
+    <div class="metrics-grid">
+      <div class="metric-card"><h5>Metrikler</h5><div id="metricsList"></div></div>
+      <div class="metric-card"><h5>Video Kalitesi</h5><div id="qualityList"></div></div>
+    </div>
+    <div class="transcript" id="transcriptBox"></div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================
+// Durum değişkenleri
+// =====================================================
+let jobId = null;          // Yüklenen video job ID'si
+let platform = "youtube_shorts"; // Seçili platform
+let micOn = false;         // Mikrofon açık mı
+let mic = null;            // SpeechRecognition nesnesi
+let origUrl = null;        // Orijinal video URL'si
+let chatHistory = [];      // Claude ile konuşma geçmişi
+let pendingEditParams = null; // Onay bekleyen edit parametreleri
+let progTimer = null;      // Progress bar timer
+
+const $ = id => document.getElementById(id);
+
+// =====================================================
+// Upload
+// =====================================================
+$("fileIn").addEventListener("change", () => {
+  const f = $("fileIn").files[0];
+  if (!f) return;
+  $("fileName").textContent = `${f.name}  (${(f.size/1024/1024).toFixed(1)} MB)`;
+  $("fileName").style.display = "block";
+  $("btnUp").disabled = false;
+  origUrl = URL.createObjectURL(f);
+});
+
+["dragover","dragenter"].forEach(ev => $("zone").addEventListener(ev, e => {
+  e.preventDefault(); $("zone").classList.add("drag");
+}));
+["dragleave","drop"].forEach(ev => $("zone").addEventListener(ev, e => {
+  e.preventDefault(); $("zone").classList.remove("drag");
+  if (ev === "drop" && e.dataTransfer.files[0]) {
+    const dt = new DataTransfer();
+    dt.items.add(e.dataTransfer.files[0]);
+    $("fileIn").files = dt.files;
+    $("fileIn").dispatchEvent(new Event("change"));
+  }
+}));
+
+$("btnUp").addEventListener("click", async () => {
+  const f = $("fileIn").files[0];
+  if (!f) return;
+  $("btnUp").disabled = true;
+  startProg("Video yükleniyor…");
+  hideErr();
+  try {
+    const fd = new FormData();
+    fd.append("file", f);
+    const res = await fetch("/api/video/upload", {method:"POST", body:fd});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Yükleme başarısız");
+    jobId = data.job_id;
+    $("jobInfo").textContent = `${data.duration}s · ${data.info?.resolution||""} · Hazır`;
+    // Chat'i aktif et
+    $("chatInput").disabled = false;
+    $("btnSend").disabled = false;
+    // Orijinal videoyu yükle
+    if (origUrl) {
+      $("origVid").src = origUrl;
+      const isPortrait = (data.info?.height||0) > (data.info?.width||0);
+      $("origBox").className = "video-box" + (isPortrait ? "" : " landscape");
+      $("editBox").className = "video-box" + (isPortrait ? "" : " landscape");
+    }
+    // Asistana bildir
+    addMessage("ai", `Video yüklendi (${data.duration}s). Nasıl bir edit istiyorsun?`);
+    endProg(true);
+  } catch(e) {
+    endProg(false);
+    showErr(e.message);
+    $("btnUp").disabled = false;
+  }
+});
+
+// =====================================================
+// Platform seçimi
+// =====================================================
+document.querySelectorAll(".plat").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".plat").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  platform = b.dataset.p;
+}));
+
+// =====================================================
+// Mikrofon
+// =====================================================
+(function setupMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { $("btnMic").style.display = "none"; return; }
+  mic = new SR();
+  mic.lang = "tr-TR";
+  mic.continuous = false;
+  mic.interimResults = true;
+  mic.onresult = e => {
+    let final = "", interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    $("chatInput").value = final || interim;
+  };
+  mic.onend = () => { micOn = false; $("btnMic").classList.remove("on"); };
+})();
+
+$("btnMic").addEventListener("click", () => {
+  if (!mic) return;
+  if (micOn) { mic.stop(); return; }
+  micOn = true;
+  $("btnMic").classList.add("on");
+  $("chatInput").value = "";
+  mic.start();
+});
+
+// =====================================================
+// Chat
+// =====================================================
+function addMessage(role, text) {
+  const wrap = $("chatMessages");
+  const div = document.createElement("div");
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar ${role}">${role === "ai" ? "C" : "S"}</div>
+    <div class="msg-bubble">${text}</div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  // Geçmişe ekle
+  chatHistory.push({role: role === "ai" ? "assistant" : "user", content: text});
+}
+
+function showTyping() { $("typing").style.display = "flex"; $("chatMessages").scrollTop = $("chatMessages").scrollHeight; }
+function hideTyping() { $("typing").style.display = "none"; }
+
+async function sendMessage() {
+  const input = $("chatInput");
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (!jobId) { showErr("Önce video yükle."); return; }
+
+  input.value = "";
+  $("btnSend").disabled = true;
+  addMessage("user", msg);
+  showTyping();
+  $("confirmBox").style.display = "none";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        message: msg,
+        history: chatHistory.slice(-10),
+        job_id: jobId
+      })
+    });
+    const data = await res.json();
+    hideTyping();
+    addMessage("ai", data.reply);
+
+    // Edit planı hazırsa onay kutusunu göster
+    if (data.ready_to_edit && data.edit_params) {
+      pendingEditParams = data.edit_params;
+      showConfirm(data.edit_params);
+    }
+  } catch(e) {
+    hideTyping();
+    addMessage("ai", "Bir hata oluştu, tekrar dener misin?");
+  } finally {
+    $("btnSend").disabled = false;
+    input.focus();
+  }
+}
+
+function showConfirm(params) {
+  const box = $("confirmBox");
+  const platNames = {youtube_shorts: "YouTube Shorts", tiktok: "TikTok", youtube: "YouTube"};
+  $("confirmParams").innerHTML = `
+    <b>Platform:</b> ${platNames[params.platform] || params.platform || "Shorts"}<br/>
+    <b>Hedef süre:</b> ${params.target_duration_sec ? params.target_duration_sec + " saniye" : "Otomatik"}<br/>
+    <b>Komut:</b> ${params.command_text}`;
+  box.style.display = "block";
+}
+
+$("btnConfirm").addEventListener("click", () => {
+  if (!pendingEditParams) return;
+  $("confirmBox").style.display = "none";
+  startEdit(pendingEditParams);
+});
+
+$("btnCancel").addEventListener("click", () => {
+  $("confirmBox").style.display = "none";
+  pendingEditParams = null;
+  addMessage("ai", "Tamam, ne değiştirmek istiyorsun?");
+});
+
+$("btnSend").addEventListener("click", sendMessage);
+$("chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+// =====================================================
+// Edit & Render
+// =====================================================
+async function startEdit(params) {
+  if (!jobId) return;
+  hideErr();
+  startProg("Claude komutu analiz ediyor…");
+
+  const stages = [
+    [3000,  "Sessizlikler tespit ediliyor…"],
+    [7000,  "Video kırpılıyor ve render ediliyor…"],
+    [14000, "Claude içeriği analiz ediyor…"],
+  ];
+  stages.forEach(([ms, label]) => setTimeout(() => {
+    if ($("progWrap").style.display !== "none") $("progLabel").textContent = label;
+  }, ms));
+
+  try {
+    const res = await Promise.race([
+      fetch(`/api/auto-edit/${jobId}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          command_text: params.command_text || "",
+          platform: params.platform || platform,
+          target_duration_sec: params.target_duration_sec || null,
+        })
+      }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("Zaman aşımı")), 120000))
+    ]);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Edit başarısız");
+    endProg(true);
+    renderResults(data);
+    addMessage("ai", `✓ Video hazır! ${data.duration?.input}s → ${data.duration?.output}s oldu. İndirebilirsin.`);
+  } catch(e) {
+    endProg(false);
+    showErr(e.message);
+    addMessage("ai", `Bir hata oluştu: ${e.message}`);
+  }
+}
+
+// =====================================================
+// Sonuçları göster
+// =====================================================
+function renderResults(data) {
+  $("dlLink").href = data.download_url;
+  $("dlMeta").textContent = `${data.duration?.input||"?"}s → ${data.duration?.output||"?"}s · ${data.platform} · ${data.edit_plan?.cuts_applied||0} kesim`;
+  $("dlBar").style.display = "flex";
+  $("editVid").src = data.download_url;
+  $("preview").style.display = "block";
+  const a = data.claude_analysis || {};
+  const analysisCard = $("analysisCard");
+  if (a.one_line_summary || (a.suggestions && a.suggestions.length)) {
+    analysisCard.style.display = "block";
+    const hq = a.hook_quality || "medium";
+    $("hookBadge").innerHTML = `<span class="hook-badge hook-${hq}">${hq==="strong"?"⚡ Güçlü Hook":hq==="medium"?"〜 Orta Hook":"⚠ Zayıf Hook"}</span>`;
+    $("summaryTxt").textContent = a.one_line_summary || "";
+    const sl = $("sugList"); sl.innerHTML = "";
+    (a.suggestions||[]).slice(0,4).forEach(t => { sl.innerHTML += `<div class="sug">${t}</div>`; });
+  }
+  const sc = data.scores || {};
+  $("metricsList").innerHTML =
+    mRow("Bilgi Yoğunluğu", sc.info_density, "/100") +
+    mRow("Tempo", sc.pacing_score, "/100") +
+    mRow("Sessizlik Riski", sc.silence_risk, "/100", true) +
+    mRow("Kurgulanan", sc.kept_sec, "s") +
+    mRow("Kelime Sayısı", sc.word_count, "");
+  const q = data.quality || {};
+  $("qualityList").innerHTML =
+    mRow("Çözünürlük", q.input?.resolution, "", false, false) +
+    mRow("Codec", q.output?.codec||q.input?.codec, "", false, false) +
+    mRow("FPS", q.input?.fps, "", false, false) +
+    `<div class="metric-row"><span>Kalite</span><span class="${q.resolution_preserved?"g":"y"}">${q.resolution_preserved?"✓ Korundu":"⚠ Değişti"}</span></div>`;
+  const tr = data.transcript?.text;
+  if (tr) { const tb = $("transcriptBox"); tb.textContent = tr; tb.style.display = "block"; }
+}
+
+function mRow(label, val, unit="", invert=false, colored=true) {
+  if (val == null) return "";
+  let cls = "b";
+  const n = parseFloat(val);
+  if (colored && !isNaN(n) && unit === "/100") {
+    cls = invert ? (n>50?"r":n>25?"y":"g") : (n>=70?"g":n>=45?"y":"r");
+  }
+  return `<div class="metric-row"><span>${label}</span><span class="${cls}">${val}${unit}</span></div>`;
+}
+
+// =====================================================
+// Progress & Hata
+// =====================================================
+function startProg(label) {
+  $("progWrap").style.display = "block";
+  $("progFill").style.width = "0%";
+  $("progLabel").textContent = label;
+  let pct = 0;
+  progTimer = setInterval(() => {
+    pct = Math.min(pct + Math.random() * 3.5, 87);
+    $("progFill").style.width = pct + "%";
+  }, 350);
+}
+function endProg(ok) {
+  clearInterval(progTimer);
+  $("progFill").style.width = ok ? "100%" : "0%";
+  setTimeout(() => { $("progWrap").style.display = "none"; }, 700);
+}
+function showErr(msg) { $("errBox").textContent = msg; $("errBox").style.display = "block"; }
+function hideErr() { $("errBox").style.display = "none"; }
+</script>
+</body>
+</html>

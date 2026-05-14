@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: clipla-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter          # ücretsiz tier; production için: standard
+    region: frankfurt      # Türkiye'ye en yakın
+
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: ANTHROPIC_API_KEY
+        sync: false        # Render dashboard'dan gir
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: API_SECRET_KEY
+        sync: false
+      - key: PRO_API_KEYS
+        sync: false
+      - key: IP_HASH_SALT
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: PUBLIC_BASE_URL
+        sync: false        # Deploy sonrası Render URL'ini gir
+      - key: WHISPER_MODEL
+        value: "small"
+      - key: CLAUDE_ENHANCE
+        value: "true"
+      - key: CLAUDE_ENHANCE_MODEL
+        value: "claude-haiku-4-5-20251001"
+      - key: MAX_UPLOAD_MB
+        value: "800"
+
+    disk:
+      name: clipla-storage
+      mountPath: /app/outputs
+      sizeGB: 10           # outputs klasörü kalıcı disk

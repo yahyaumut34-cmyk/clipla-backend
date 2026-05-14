@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Sanal ortam
+venv/
+.venv/
+env/
+ENV/
+
+# Ortam değişkenleri — ASLA commit'leme
+.env
+.env.*
+!.env.example
+
+# Video / upload dosyaları (büyük, geçici)
+uploads/
+outputs/
+jobs/
+storage/
+
+# Log dosyaları
+*.log
+logs/
+
+# Veritabanı
+*.db
+*.sqlite3
+
+# Geçici
+tmp/
+temp/
+.tmp/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Whisper model cache (büyük dosyalar)
+# ~/.cache/huggingface/ zaten dışarıda
+
+# Test & eski dosyalar
+*.old
+_scan_ffmpeg.txt
+
+# Müzik / ses dosyaları (büyük binary)
+music/**/*.mp3
+sounds/**/*.mp3
+*.mp3
+*.wav
+*.m4a
+
+uploads/
+outputs/
+*.mp4
+*.mov
+*.avi
+*.mkv

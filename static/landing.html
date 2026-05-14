@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Clipla — Sesle Video Edit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--ink:#0a0a08;--paper:#f5f2eb;--accent:#d4401a;--muted:#8a8478;--card:#edeae0;--bd:#d4d0c4;--serif:'Instrument Serif',Georgia,serif;--mono:'Geist Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--mono);overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid transparent;transition:all .3s}
+nav.scrolled{background:rgba(245,242,235,.92);backdrop-filter:blur(12px);border-color:var(--bd)}
+.nav-logo{font-family:var(--serif);font-size:22px;font-style:italic;color:var(--ink)}
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 40px 80px;max-width:1100px;margin:0 auto}
+.hero-eyebrow{font-size:11px;letter-spacing:.15em;color:var(--accent);text-transform:uppercase;margin-bottom:28px}
+.hero-title{font-family:var(--serif);font-size:clamp(52px,8vw,108px);line-height:.95;letter-spacing:-2px;margin-bottom:32px}
+.hero-title em{font-style:italic;color:var(--accent)}
+.hero-sub{font-size:14px;line-height:1.8;color:var(--muted);max-width:480px;margin-bottom:48px}
+.hero-form{display:flex;max-width:440px}
+.hero-form input{flex:1;padding:14px 18px;background:var(--card);border:1px solid var(--bd);border-right:none;border-radius:2px 0 0 2px;font-family:var(--mono);font-size:13px;color:var(--ink);outline:none}
+.hero-form input:focus{border-color:var(--ink)}
+.hero-form input::placeholder{color:var(--muted)}
+.hero-form button{padding:14px 24px;background:var(--accent);color:#fff;border:none;border-radius:0 2px 2px 0;font-family:var(--mono);font-size:12px;letter-spacing:.06em;cursor:pointer;white-space:nowrap}
+.hero-form button:hover{opacity:.88}
+.form-note{font-size:11px;color:var(--muted);margin-top:12px}
+.form-success{display:none;padding:14px 18px;background:var(--card);border:1px solid var(--bd);border-radius:2px;font-size:13px;color:var(--ink);max-width:440px;margin-top:12px}
+.form-success span{color:var(--accent)}
+.divider{height:1px;background:var(--bd);margin:0 40px}
+.section{padding:100px 40px;max-width:1100px;margin:0 auto}
+.section-label{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:60px;padding-bottom:16px;border-bottom:1px solid var(--bd)}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd)}
+.step-item{background:var(--paper);padding:40px 32px}
+.step-num{font-size:11px;color:var(--muted);margin-bottom:20px}
+.step-title{font-family:var(--serif);font-size:28px;font-style:italic;margin-bottom:12px}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.7}
+.pricing-wrap{background:var(--ink);color:var(--paper);border-radius:4px;padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.price-big{font-family:var(--serif);font-size:72px;font-style:italic;line-height:1}
+.price-period{font-size:13px;color:var(--muted);margin-top:8px}
+.price-features{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:32px}
+.price-features li{font-size:13px;display:flex;gap:12px;color:rgba(245,242,235,.8)}
+.price-features li::before{content:'→';color:var(--accent);flex-shrink:0}
+.price-cta{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:2px;font-family:var(--mono);font-size:13px;cursor:pointer}
+footer{border-top:1px solid var(--bd);padding:32px 40px;display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto;font-size:11px;color:var(--muted)}
+.footer-logo{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--ink)}
+@media(max-width:768px){nav{padding:16px 20px}.hero{padding:100px 20px 60px}.hero-title{font-size:52px}.steps-grid{grid-template-columns:1fr}.pricing-wrap{grid-template-columns:1fr;padding:36px 24px}.section{padding:60px 20px}footer{padding:24px 20px;flex-direction:column;gap:12px;text-align:center}}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="nav-logo">Clipla</div>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">Erken Erişim · Beta</div>
+  <h1 class="hero-title">Video edit,<br/><em>sesinle.</em></h1>
+  <p class="hero-sub">Video edit öğrenmek için zamanın yok. Editçi bulmak zor ve pahalı. Clipla'ya videoyu at, ne istediğini söyle — gerisini o halleder.</p>
+  <div class="hero-form">
+    <input type="email" id="emailInput" placeholder="email@adresin.com"/>
+    <button id="joinBtn">Listeye Gir →</button>
+  </div>
+  <div class="form-note" id="formNote">Erken erişimde ilk 100 kişiye %50 indirim.</div>
+  <div class="form-success" id="formSuccess">✓ Kaydedildi. <span>Yönlendiriliyorsunuz…</span></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section">
+  <div class="section-label">Nasıl çalışır</div>
+  <div class="steps-grid">
+    <div class="step-item"><div class="step-num">01</div><div class="step-title">Videoyu yükle</div><div class="step-desc">Ham çekimi olduğu gibi at. Uzun, dağınık, önemli değil.</div></div>
+    <div class="step-item"><div class="step-num">02</div><div class="step-title">Komut ver</div><div class="step-desc">"60 saniyelik Shorts yap, sessizlikleri temizle" — yeter.</div></div>
+    <div class="step-item"><div class="step-num">03</div><div class="step-title">İndir</div><div class="step-desc">Kurgulanan video hazır. Orijinalle yan yana karşılaştır.</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section">
+  <div class="pricing-wrap">
+    <div>
+      <div style="font-size:11px;letter-spacing:.15em;color:var(--muted);margin-bottom:16px">Fiyatlandırma</div>
+      <div class="price-big">$15</div>
+      <div class="price-period">/ 10 video kredisi</div>
+      <div style="margin-top:20px;font-size:13px;color:rgba(245,242,235,.5);line-height:1.7">Abonelik yok. Taahhüt yok.<br/>Kullandığın kadar öde.</div>
+    </div>
+    <div>
+      <ul class="price-features">
+        <li>Ham videoyu yükle, kurgulananı indir</li>
+        <li>Sesli veya yazılı komut</li>
+        <li>Claude AI içerik analizi</li>
+        <li>YouTube Shorts / TikTok / YouTube desteği</li>
+        <li>Erken erişimde ilk 100 kullanıcıya %50 indirim</li>
+      </ul>
+      <button class="price-cta" id="joinBtn2">Beta Listesine Gir →</button>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<footer>
+  <div class="footer-logo">Clipla</div>
+  <div>© 2026 Clipla · Beta</div>
+</footer>
+
+<script>
+window.addEventListener("scroll", function() {
+  document.getElementById("nav").classList.toggle("scrolled", window.scrollY > 20);
+});
+
+async function joinBeta() {
+  var email = document.getElementById("emailInput").value.trim();
+  if (!email || email.indexOf("@") < 0) {
+    document.getElementById("emailInput").style.borderColor = "#d4401a";
+    document.getElementById("emailInput").focus();
+    return;
+  }
+  document.getElementById("joinBtn").textContent = "Kaydediliyor…";
+  document.getElementById("joinBtn").disabled = true;
+  try {
+    var res = await fetch("/api/beta/join", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({email: email})
+    });
+    document.getElementById("formNote").style.display = "none";
+    document.getElementById("hero-form") && (document.getElementById("hero-form").style.display = "none");
+    document.getElementById("formSuccess").style.display = "block";
+    setTimeout(function() { window.location.href = window.location.origin + '/editor'; }, 1500);
+  } catch(e) {
+    document.getElementById("formSuccess").style.display = "block";
+    setTimeout(function() { window.location.href = window.location.origin + '/editor'; }, 1500);
+  }
+}
+
+document.getElementById("joinBtn").addEventListener("click", joinBeta);
+document.getElementById("joinBtn2").addEventListener("click", function() {
+  window.scrollTo({top: 0, behavior: "smooth"});
+  setTimeout(function() { document.getElementById("emailInput").focus(); }, 500);
+});
+document.getElementById("emailInput").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") joinBeta();
+});
+</script>
+</body>
+</html>
