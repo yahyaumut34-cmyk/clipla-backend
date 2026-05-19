@@ -13,6 +13,9 @@ router = APIRouter(prefix="/api/command", tags=["command"])
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+# Edit planı çıkarma için daha güçlü model — kullanıcı niyetini doğru anlamak kritik
+EDIT_PLAN_MODEL = os.getenv("EDIT_PLAN_MODEL", "claude-sonnet-4-6")
+
 _client: Optional[anthropic.Anthropic] = None
 
 def _get_client() -> anthropic.Anthropic:
@@ -179,7 +182,7 @@ def _call_claude_api(command_text: str, video_duration: Optional[float], transcr
     try:
         client = _get_client()
         response = client.messages.create(
-            model="claude-haiku-4-5",
+            model=EDIT_PLAN_MODEL,
             max_tokens=512,
             system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             messages=[{"role": "user", "content": user_message}],
