@@ -517,6 +517,7 @@ def render_keep_segments(video_path: str, output_path: str, keeps: List[Dict[str
     )
     src_fps = "30"
     src_asr = "44100"
+    has_audio = False
     try:
         probe_data = json.loads(probe_r.stdout)
         for st in probe_data.get("streams", []):
@@ -529,6 +530,7 @@ def render_keep_segments(video_path: str, output_path: str, keeps: List[Dict[str
                 except Exception:
                     src_fps = "30"
             if st.get("codec_type") == "audio":
+                has_audio = True
                 src_asr = st.get("sample_rate", "44100")
     except Exception:
         pass
@@ -549,18 +551,25 @@ def render_keep_segments(video_path: str, output_path: str, keeps: List[Dict[str
             "-i", video_path,
             "-t", str(dur),
             "-vf", f"fps={src_fps},setpts=PTS-STARTPTS",
-            "-af", f"aresample={src_asr},asetpts=PTS-STARTPTS",
             "-c:v", "libx264",
             "-preset", "fast",
             "-crf", "17",
             "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "192k",
-            "-ar", src_asr,
             "-avoid_negative_ts", "make_zero",
-            part_path
+            "-max_muxing_queue_size", "9999",
         ]
-        r = _run(cmd)
+        if has_audio:
+            cmd += [
+                "-af", f"aresample={src_asr},asetpts=PTS-STARTPTS",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-ar", src_asr,
+            ]
+        else:
+            cmd += ["-an"]
+        cmd.append(part_path)
+
+        _run(cmd)
 
         if os.path.exists(part_path) and os.path.getsize(part_path) > 0:
             part_files.append(part_path)
@@ -568,28 +577,36 @@ def render_keep_segments(video_path: str, output_path: str, keeps: List[Dict[str
     if not part_files:
         return False, "No segments to render"
 
+    if len(part_files) == 1:
+        shutil.copy2(part_files[0], output_path)
+        return True, None
+
     n = len(part_files)
     input_args = []
     for p in part_files:
         input_args += ["-i", p]
 
-    fc_parts = "".join([f"[{j}:v][{j}:a]" for j in range(n)])
-    filter_complex = f"{fc_parts}concat=n={n}:v=1:a=1[v][a]"
+    if has_audio:
+        fc_parts = "".join([f"[{j}:v][{j}:a]" for j in range(n)])
+        filter_complex = f"{fc_parts}concat=n={n}:v=1:a=1[v][a]"
+        map_args = ["-map", "[v]", "-map", "[a]",
+                    "-c:a", "aac", "-b:a", "192k", "-ar", src_asr]
+    else:
+        fc_parts = "".join([f"[{j}:v]" for j in range(n)])
+        filter_complex = f"{fc_parts}concat=n={n}:v=1:a=0[v]"
+        map_args = ["-map", "[v]", "-an"]
 
     cmd_concat = [
         "ffmpeg", "-hide_banner", "-y",
     ] + input_args + [
         "-filter_complex", filter_complex,
-        "-map", "[v]",
-        "-map", "[a]",
+    ] + map_args + [
         "-c:v", "libx264",
         "-preset", "fast",
         "-crf", "17",
         "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-ar", src_asr,
         "-movflags", "+faststart",
+        "-max_muxing_queue_size", "9999",
         output_path
     ]
     r_concat = _run(cmd_concat)
