@@ -54,7 +54,7 @@ def render_cutlist_concat(
     except Exception:
         duration = 9999.0
 
-    # Cut each segment
+    # Cut each segment — re-encode for compatibility
     segment_files = []
     for i, seg in enumerate(segments):
         end = min(seg.end, duration)
@@ -67,7 +67,9 @@ def render_cutlist_concat(
             "-ss", f"{start:.4f}",
             "-i", input_video_path,
             "-t", f"{end - start:.4f}",
-            "-c", "copy",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "aac", "-ar", "44100",
+            "-movflags", "+faststart",
             seg_path
         ]
         subprocess.run(cmd, capture_output=True)
@@ -96,5 +98,19 @@ def render_cutlist_concat(
         "-c", "copy",
         output_path
     ]
-    subprocess.run(cmd, capture_output=True)
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        # fallback: re-encode concat as well
+        cmd[-1] = output_path
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", concat_list,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "aac", "-ar", "44100",
+            "-movflags", "+faststart",
+            output_path
+        ]
+        subprocess.run(cmd, capture_output=True)
     return output_path
