@@ -29,8 +29,8 @@ RUN mkdir -p uploads outputs jobs sounds music
 EXPOSE 8000
 
 # ── Healthcheck ──────────────────────────────────────────────────────────────
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # ── Başlatma ─────────────────────────────────────────────────────────────────
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
