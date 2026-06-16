@@ -365,6 +365,8 @@ class AutoEditRequest(BaseModel):
     command_text: str = ""
     platform: Optional[str] = None
     target_duration_sec: Optional[int] = None
+    transition: Optional[str] = None        # fade, fadeblack, fadewhite, slideleft, slideright, wipeleft, wiperight, dissolve, circleopen
+    transition_duration: Optional[float] = 0.3
 
 
 class ProcessRequest(BaseModel):
@@ -499,14 +501,35 @@ def build_keeps_from_cuts(cuts: List[Dict[str, Any]], duration: float):
     return cleaned
 
 
-def render_keep_segments(video_path: str, output_path: str, keeps: List[Dict[str, float]]):
+VALID_TRANSITIONS = {
+    'fade', 'fadeblack', 'fadewhite', 'fadegrays',
+    'slideleft', 'slideright', 'slideup', 'slidedown',
+    'wipeleft', 'wiperight', 'wipeup', 'wipedown',
+    'dissolve', 'circleopen', 'circlecrop', 'pixelize',
+}
+
+def _get_file_duration(path: str) -> float:
+    r = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path],
+        capture_output=True, text=True
+    )
+    try:
+        return float(json.loads(r.stdout)["format"]["duration"])
+    except Exception:
+        return 0.0
+
+
+def render_keep_segments(
+    video_path: str,
+    output_path: str,
+    keeps: List[Dict[str, float]],
+    transition: Optional[str] = None,
+    transition_duration: float = 0.3,
+):
     """
-    SYNC FIX:
-    - Her segment için -ss INPUT'tan önce koy (accurate seek)
-    - Re-encode ile kes + setpts/asetpts reset → PTS drift yok
-    - Concat'ta filter_complex ile timestamp sıfırla
-    - CFR (constant frame rate) zorla → VFR kaynaklı drift önlenir
-    - aresample ile audio sample rate sabitle → audio drift önlenir
+    Cut and concatenate keep segments with full re-encode for maximum compatibility.
+    Handles videos with no audio, VFR, HEVC, and other edge cases.
+    Supports xfade transitions between segments when transition is specified.
     """
     _clean_tmp()
 
@@ -586,15 +609,51 @@ def render_keep_segments(video_path: str, output_path: str, keeps: List[Dict[str
     for p in part_files:
         input_args += ["-i", p]
 
-    if has_audio:
-        fc_parts = "".join([f"[{j}:v][{j}:a]" for j in range(n)])
-        filter_complex = f"{fc_parts}concat=n={n}:v=1:a=1[v][a]"
-        map_args = ["-map", "[v]", "-map", "[a]",
-                    "-c:a", "aac", "-b:a", "192k", "-ar", src_asr]
+    # xfade transitions between segments
+    use_transition = transition and transition in VALID_TRANSITIONS and n >= 2
+    td = max(0.1, min(float(transition_duration), 1.0))
+
+    if use_transition:
+        # Build chained xfade filter_complex
+        # Collect segment durations for offset calculation
+        seg_durations = [_get_file_duration(p) for p in part_files]
+
+        fc_parts = []
+        # Video xfade chain
+        cumulative = seg_durations[0]
+        prev_v = "[0:v]"
+        for i in range(1, n):
+            offset = max(0.01, cumulative - td)
+            tag = f"[vx{i}]"
+            fc_parts.append(f"{prev_v}[{i}:v]xfade=transition={transition}:duration={td}:offset={offset}{tag}")
+            prev_v = tag
+            cumulative += seg_durations[i] - td
+        fc_parts[-1] = fc_parts[-1].rsplit("[", 1)[0] + "[vout]"
+
+        if has_audio:
+            # Audio acrossfade chain
+            prev_a = "[0:a]"
+            for i in range(1, n):
+                tag = f"[ax{i}]"
+                fc_parts.append(f"{prev_a}[{i}:a]acrossfade=d={td}{tag}")
+                prev_a = tag
+            fc_parts[-1] = fc_parts[-1].rsplit("[", 1)[0] + "[aout]"
+            map_args = ["-map", "[vout]", "-map", "[aout]",
+                        "-c:a", "aac", "-b:a", "192k", "-ar", src_asr]
+        else:
+            map_args = ["-map", "[vout]", "-an"]
+
+        filter_complex = ";".join(fc_parts)
     else:
-        fc_parts = "".join([f"[{j}:v]" for j in range(n)])
-        filter_complex = f"{fc_parts}concat=n={n}:v=1:a=0[v]"
-        map_args = ["-map", "[v]", "-an"]
+        if has_audio:
+            fc_parts = "".join([f"[{j}:v][{j}:a]" for j in range(n)])
+            filter_complex = f"{fc_parts}concat=n={n}:v=1:a=1[vout][aout]"
+            map_args = ["-map", "[vout]", "-map", "[aout]",
+                        "-c:a", "aac", "-b:a", "192k", "-ar", src_asr]
+        else:
+            fc_parts = "".join([f"[{j}:v]" for j in range(n)])
+            filter_complex = f"{fc_parts}concat=n={n}:v=1:a=0[vout]"
+            map_args = ["-map", "[vout]", "-an"]
 
     cmd_concat = [
         "ffmpeg", "-hide_banner", "-y",
@@ -1650,7 +1709,11 @@ async def auto_edit_v16(request: Request, job_id: str, body: AutoEditRequest):
     out_name = f"{job_id}_auto.mp4"
     output_path = os.path.join(OUTPUT_DIR, out_name)
 
-    ok, err = render_keep_segments(video_path, output_path, keeps)
+    ok, err = render_keep_segments(
+        video_path, output_path, keeps,
+        transition=body.transition,
+        transition_duration=body.transition_duration or 0.3,
+    )
     if not ok:
         raise HTTPException(status_code=500, detail=f"auto-edit render failed: {err}")
 
