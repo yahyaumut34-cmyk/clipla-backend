@@ -326,6 +326,82 @@ async def save_shorts(job_id: str, shorts_list: list) -> bool:
         return False
 
 
+# ── JOB CONTEXT (RAM yerine Supabase) ────────────────────────────────────────
+
+async def save_job_context(job_id: str, video_path: str, context: dict = None) -> bool:
+    """video_path ve context'i jobs tablosuna kalıcı olarak yazar."""
+    client = get_client()
+    if not client:
+        return False
+    try:
+        client.table("jobs").update({
+            "video_path": video_path,
+            "context":    context or {},
+        }).eq("id", job_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"[supabase] save_job_context: {e}")
+        return False
+
+
+async def get_job_context(job_id: str) -> Optional[dict]:
+    """jobs tablosundan video_path ve context'i okur."""
+    client = get_client()
+    if not client:
+        return None
+    try:
+        res = client.table("jobs").select("video_path, context, last_edited_path").eq("id", job_id).single().execute()
+        return res.data
+    except Exception as e:
+        logger.error(f"[supabase] get_job_context: {e}")
+        return None
+
+
+async def save_last_edited_path(job_id: str, path: str) -> bool:
+    """Son edit çıktısının path'ini kaydeder."""
+    client = get_client()
+    if not client:
+        return False
+    try:
+        client.table("jobs").update({"last_edited_path": path}).eq("id", job_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"[supabase] save_last_edited_path: {e}")
+        return False
+
+
+async def save_edit_version(job_id: str, version: int, command_text: str, output_file: str, duration: float) -> bool:
+    """Edit versiyonunu edit_versions tablosuna kaydeder."""
+    client = get_client()
+    if not client:
+        return False
+    try:
+        client.table("edit_versions").insert({
+            "job_id":       job_id,
+            "version":      version,
+            "command_text": command_text,
+            "output_file":  output_file,
+            "duration":     duration,
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error(f"[supabase] save_edit_version: {e}")
+        return False
+
+
+async def get_edit_versions(job_id: str) -> list:
+    """Job'a ait tüm edit versiyonlarını döner."""
+    client = get_client()
+    if not client:
+        return []
+    try:
+        res = client.table("edit_versions").select("*").eq("job_id", job_id).order("version").execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"[supabase] get_edit_versions: {e}")
+        return []
+
+
 # ── ANALYTICS ────────────────────────────────────────────────────────────────
 
 async def log_event(event: str, job_id: Optional[str] = None, extra: dict = None) -> None:
@@ -345,14 +421,19 @@ async def log_event(event: str, job_id: Optional[str] = None, extra: dict = None
 
 # Singleton alias
 sb = type("SupabaseService", (), {
-    "create_job":        staticmethod(create_job),
-    "update_job_status": staticmethod(update_job_status),
-    "create_edit_job":   staticmethod(create_edit_job),
-    "update_edit_job":   staticmethod(update_edit_job),
-    "save_edit_results": staticmethod(save_edit_results),
-    "save_transcript":   staticmethod(save_transcript),
-    "save_subtitle":     staticmethod(save_subtitle),
-    "save_effect":       staticmethod(save_effect),
-    "save_shorts":       staticmethod(save_shorts),
-    "log_event":         staticmethod(log_event),
+    "create_job":           staticmethod(create_job),
+    "update_job_status":    staticmethod(update_job_status),
+    "create_edit_job":      staticmethod(create_edit_job),
+    "update_edit_job":      staticmethod(update_edit_job),
+    "save_edit_results":    staticmethod(save_edit_results),
+    "save_transcript":      staticmethod(save_transcript),
+    "save_subtitle":        staticmethod(save_subtitle),
+    "save_effect":          staticmethod(save_effect),
+    "save_shorts":          staticmethod(save_shorts),
+    "log_event":            staticmethod(log_event),
+    "save_job_context":     staticmethod(save_job_context),
+    "get_job_context":      staticmethod(get_job_context),
+    "save_last_edited_path":staticmethod(save_last_edited_path),
+    "save_edit_version":    staticmethod(save_edit_version),
+    "get_edit_versions":    staticmethod(get_edit_versions),
 })()

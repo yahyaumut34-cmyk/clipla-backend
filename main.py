@@ -412,27 +412,47 @@ def get_duration(video_path: str) -> float:
 def get_or_create_job_context(job_id: str) -> dict:
     if job_id not in JOB_CONTEXT:
         JOB_CONTEXT[job_id] = {}
-    return JOB_CONTEXT[job_id]
+    ctx = JOB_CONTEXT[job_id]
+    # RAM'de video_path yoksa filesystem'den bul
+    if not ctx.get("video_path"):
+        # Önce upload dizinini tara
+        for d in [UPLOAD_DIR, os.path.join(UPLOAD_DIR, job_id)]:
+            if os.path.isdir(d):
+                for fname in os.listdir(d):
+                    if fname.startswith(job_id) and fname.endswith(('.mp4', '.mov', '.avi', '.webm')):
+                        ctx["video_path"] = os.path.join(d, fname)
+                        break
+            candidate = os.path.join(UPLOAD_DIR, f"{job_id}.mp4")
+            if os.path.exists(candidate):
+                ctx["video_path"] = candidate
+                break
+    return ctx
 
 
 def _save_edit_version(job_id: str, command_text: str, output_file: str, duration: float):
-    """Edit tamamlandığında versiyonu EDIT_VERSIONS'a kaydet."""
+    """Edit tamamlandığında versiyonu RAM + Supabase'e kaydet."""
     versions = EDIT_VERSIONS.setdefault(job_id, [])
+    version_num = len(versions) + 1
     versions.append({
-        "version": len(versions) + 1,
-        "command": command_text,
-        "file":    output_file,
+        "version":  version_num,
+        "command":  command_text,
+        "file":     output_file,
         "duration": round(duration, 1),
-        "ts":      datetime.now(timezone.utc).isoformat(),
+        "ts":       datetime.now(timezone.utc).isoformat(),
     })
-    # max 10 versiyon sakla
     if len(versions) > 10:
         EDIT_VERSIONS[job_id] = versions[-10:]
-    # JOB_CONTEXT'e de kaydet (chat'e iletmek için)
     ctx = JOB_CONTEXT.setdefault(job_id, {})
     ctx.setdefault("applied_edits", []).append(command_text)
     if len(ctx["applied_edits"]) > 5:
         ctx["applied_edits"] = ctx["applied_edits"][-5:]
+    # Supabase'e de yaz
+    import asyncio
+    try:
+        asyncio.ensure_future(sb.save_edit_version(job_id, version_num, command_text, output_file, round(duration, 1)))
+        asyncio.ensure_future(sb.save_last_edited_path(job_id, output_file))
+    except Exception:
+        pass
 
 
 def remember_uploaded_video(job_id: str, file_path: str):
@@ -440,6 +460,16 @@ def remember_uploaded_video(job_id: str, file_path: str):
     ctx["uploaded"] = True
     ctx["video_path"] = file_path
     ctx["duration_sec"] = round(get_duration(file_path), 2)
+    # Supabase'e kalıcı olarak da yaz (restart sonrası kaybolmaz)
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(sb.save_job_context(job_id, file_path, ctx))
+        else:
+            loop.run_until_complete(sb.save_job_context(job_id, file_path, ctx))
+    except Exception:
+        pass
 
 def detect_silence_segments(video_path: str):
     cmd = [
